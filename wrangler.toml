@@ -1,0 +1,20 @@
+name = "lpl-demo"
+main = "src/index.ts"
+compatibility_date = "2026-02-09"
+compatibility_flags = ["nodejs_compat"]
+
+# Static portal assets -- /api/* routes go to Worker fetch handler
+[assets]
+directory = "./docs"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+not_found_handling = "single-page-application"
+
+# Custom domain routes
+[[routes]]
+pattern = "lpl.pm-demo.dev/*"
+zone_name = "pm-demo.dev"
+
+[[routes]]
+pattern = "api.lpl.pm-demo.dev/*"
+zone_name = "pm-demo.dev"

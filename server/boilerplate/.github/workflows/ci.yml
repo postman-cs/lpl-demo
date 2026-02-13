@@ -1,0 +1,364 @@
+name: CI/CD - Build, Deploy, Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 */6 * * *"  # Every 6 hours -- replaces Postman monitor
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: "Test level to run"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - smoke
+          - contract
+      environment:
+        description: "Target environment"
+        required: false
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  unit-tests:
+    name: Unit Tests + Lint
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run linting
+        run: |
+          flake8 app/ --max-line-length 120
+          black app/ --check
+
+      - name: Run unit tests
+        run: pytest tests/ -v --junitxml=unit-results.xml
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: unit-results.xml
+
+  validate-spec:
+    name: Validate OpenAPI Spec
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Lint OpenAPI spec
+        run: postman spec lint openapi.yaml --fail-severity error
+
+  pre-deploy-tests:
+    name: Pre-Deploy Tests (Container)
+    needs: [unit-tests, validate-spec]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container image
+        run: docker build -t app-under-test .
+
+      - name: Start container
+        run: |
+          docker run -d --name app-under-test -p 5000:5000 app-under-test
+          # Wait for container to be healthy
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Container is healthy"
+              break
+            fi
+            echo "Waiting for container... ($i/30)"
+            sleep 2
+          done
+          curl -sf http://localhost:5000/health || (docker logs app-under-test && exit 1)
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Run smoke tests against local container
+        run: |
+          postman collection run ${{ vars.POSTMAN_SMOKE_COLLECTION_UID }} \
+            --environment ${{ vars.POSTMAN_ENVIRONMENT_UID }} \
+            --env-var "baseUrl=http://localhost:5000" \
+            --env-var "CI=true" \
+            --reporters cli
+
+      - name: Run contract tests against local container
+        run: |
+          postman collection run ${{ vars.POSTMAN_CONTRACT_COLLECTION_UID }} \
+            --environment ${{ vars.POSTMAN_ENVIRONMENT_UID }} \
+            --env-var "baseUrl=http://localhost:5000" \
+            --env-var "CI=true" \
+            --reporters cli
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f app-under-test || true
+
+  deploy-dev:
+    name: Deploy to Dev
+    needs: [unit-tests, validate-spec, pre-deploy-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      invoke_url: ${{ steps.deploy.outputs.invoke_url }}
+      api_id: ${{ steps.deploy.outputs.api_id }}
+      previous_version: ${{ steps.snapshot.outputs.previous_version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Snapshot current version for rollback
+        id: snapshot
+        run: |
+          FUNCTION_NAME="${{ vars.FUNCTION_NAME }}"
+          VERSION=$(aws lambda publish-version \
+            --function-name "$FUNCTION_NAME" \
+            --description "pre-deploy snapshot" \
+            --query 'Version' --output text 2>/dev/null) || \
+          VERSION=$(aws lambda list-versions-by-function \
+            --function-name "$FUNCTION_NAME" \
+            --query 'Versions[-1].Version' --output text)
+          echo "previous_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Snapshot version: $VERSION"
+
+      - name: Package and deploy
+        id: deploy
+        run: |
+          pip install -r requirements.txt -t package/
+          cp -r app/ package/app/
+          cp openapi.yaml package/
+          cd package && zip -r ../deployment.zip .
+          cd ..
+
+          FUNCTION_NAME="${{ vars.FUNCTION_NAME }}"
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://deployment.zip \
+            --query 'FunctionArn' --output text
+
+          echo "Waiting for Lambda update to complete..."
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+          INVOKE_URL="${{ vars.API_GATEWAY_URL }}"
+          echo "invoke_url=$INVOKE_URL" >> "$GITHUB_OUTPUT"
+          echo "api_id=${{ vars.API_GATEWAY_ID }}" >> "$GITHUB_OUTPUT"
+
+  # Post-deploy smoke tests -- runs after deploy on push, or standalone on schedule/dispatch
+  postman-smoke-tests:
+    name: Smoke Tests (Postman)
+    needs: deploy-dev
+    if: >
+      always() &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.deploy-dev.result == 'success') ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Validate base URL
+        id: url
+        run: |
+          BASE_URL="${{ needs.deploy-dev.outputs.invoke_url || vars.API_GATEWAY_URL }}"
+          if [ -z "$BASE_URL" ]; then
+            echo "::error::BASE_URL is empty. Set API_GATEWAY_URL in repository variables."
+            exit 1
+          fi
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Run smoke tests
+        run: |
+          postman collection run ${{ vars.POSTMAN_SMOKE_COLLECTION_UID }} \
+            --environment ${{ vars.POSTMAN_ENVIRONMENT_UID }} \
+            --env-var "baseUrl=${{ steps.url.outputs.base_url }}" \
+            --env-var "CI=true" \
+            --reporters cli,junit \
+            --reporter-junit-export smoke-results.xml
+
+      - name: Upload smoke test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: smoke-results.xml
+
+  # Post-deploy contract tests -- runs after deploy on push, or standalone on schedule/dispatch
+  postman-contract-tests:
+    name: Contract Tests (Postman)
+    needs: deploy-dev
+    if: >
+      always() &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.deploy-dev.result == 'success') ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Login to Postman CLI
+        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Validate base URL
+        id: url
+        run: |
+          BASE_URL="${{ needs.deploy-dev.outputs.invoke_url || vars.API_GATEWAY_URL }}"
+          if [ -z "$BASE_URL" ]; then
+            echo "::error::BASE_URL is empty. Set API_GATEWAY_URL in repository variables."
+            exit 1
+          fi
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Run contract tests
+        run: |
+          postman collection run ${{ vars.POSTMAN_CONTRACT_COLLECTION_UID }} \
+            --environment ${{ vars.POSTMAN_ENVIRONMENT_UID }} \
+            --env-var "baseUrl=${{ steps.url.outputs.base_url }}" \
+            --env-var "CI=true" \
+            --reporters cli,junit \
+            --reporter-junit-export contract-results.xml
+
+      - name: Upload contract test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-test-results
+          path: contract-results.xml
+
+  rollback:
+    name: Rollback Deployment
+    needs: [deploy-dev, postman-smoke-tests, postman-contract-tests]
+    if: >
+      !cancelled() &&
+      needs.deploy-dev.result == 'success' &&
+      (
+        needs.postman-smoke-tests.result != 'success' ||
+        needs.postman-contract-tests.result != 'success'
+      ) &&
+      !(
+        needs.postman-smoke-tests.result == 'skipped' &&
+        needs.postman-contract-tests.result == 'skipped'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Roll back to previous version
+        run: |
+          FUNCTION_NAME="${{ vars.FUNCTION_NAME }}"
+          PREV_VERSION="${{ needs.deploy-dev.outputs.previous_version }}"
+          echo "Rolling back $FUNCTION_NAME to version $PREV_VERSION"
+
+          # Download the previous version's deployment package
+          CODE_URL=$(aws lambda get-function \
+            --function-name "$FUNCTION_NAME" \
+            --qualifier "$PREV_VERSION" \
+            --query 'Code.Location' --output text)
+          curl -sL "$CODE_URL" -o rollback.zip
+
+          # Re-deploy previous code to $LATEST
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://rollback.zip \
+            --query 'FunctionArn' --output text
+
+          echo "Waiting for rollback to complete..."
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+          echo "::warning::Deployment rolled back to version $PREV_VERSION due to post-deploy test failures"
+
+  report:
+    name: Report Results
+    needs: [postman-smoke-tests, postman-contract-tests, rollback]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all results
+        uses: actions/download-artifact@v4
+
+      - name: Summary
+        run: |
+          echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          ROLLBACK_STATUS="${{ needs.rollback.result }}"
+          if [ "$ROLLBACK_STATUS" = "success" ]; then
+            echo "> **Deployment was rolled back** due to post-deploy test failures." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          for name in smoke-test-results contract-test-results; do
+            if [ -f "${name}/${name//-results/}-results.xml" ]; then
+              echo "- **${name}**: uploaded" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- **${name}**: not available" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done

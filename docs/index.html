@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BRAVE Platform - Template Selection</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Layer 2 Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">BRAVE</div>
+      <div class="login-subtitle">Developer Experience Platform</div>
+      <p class="login-desc">Sign in with your GitHub account to access the provisioning portal.</p>
+      <button class="btn-github-login" onclick="githubLogin()">
+        <svg class="github-icon" viewBox="0 0 16 16" width="20" height="20" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Sign in with GitHub
+      </button>
+      <a href="/cdn-cgi/access/logout" class="login-signout">Sign out of GitHub</a>
+    </div>
+  </div>
+
+  <div id="app-shell" style="display:none;">
+  <nav class="nav">
+    <div class="nav-brand">
+      <a href="#" class="nav-logo" onclick="showTemplates(); return false;">BRAVE</a>
+      <span class="nav-subtitle">Developer Experience Platform</span>
+    </div>
+    <div class="nav-breadcrumb" id="breadcrumb">
+      <a href="#" onclick="showTemplates(); return false;">Home</a> /
+      <a href="#" onclick="showTemplates(); return false;">Landing Zone</a> /
+      <span id="breadcrumb-current">New Landing Zone (LZ)</span>
+    </div>
+    <div class="nav-user" id="nav-user" style="display:none;">
+      <img id="nav-avatar" class="nav-avatar" src="" alt="">
+      <span id="nav-username" class="nav-username"></span>
+      <button class="btn-logout" onclick="logoutUser()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <a href="#" class="sidebar-link sidebar-postman" id="nav-docs" onclick="showDocs(); return false;"><img src="postman-icon.png" class="sidebar-postman-icon" alt="">Integration Reference</a>
+      </div>
+      <div class="sidebar-section">
+        <h4 class="sidebar-heading">Navigation</h4>
+        <a href="#" class="sidebar-link active" id="nav-templates" onclick="showTemplates(); return false;">Templates</a>
+        <a href="#" class="sidebar-link" onclick="showToast('Provisioned Services'); return false;">Provisioned Services</a>
+      </div>
+      <div class="sidebar-section">
+        <h4 class="sidebar-heading">Tools</h4>
+        <a href="#" class="sidebar-link" onclick="showToast('API Linting Tool'); return false;">API Linting Tool</a>
+        <a href="#" class="sidebar-link" onclick="showToast('Spec Validator'); return false;">Spec Validator</a>
+        <a href="#" class="sidebar-link" onclick="showToast('Architecture Review'); return false;">Architecture Review</a>
+      </div>
+      <div class="sidebar-section">
+        <h4 class="sidebar-heading">Support</h4>
+        <a href="#" class="sidebar-link" onclick="showToast('Developer Guide'); return false;">Developer Guide</a>
+        <a href="#" class="sidebar-link" onclick="showToast('Contact BRAVE Team'); return false;">Contact BRAVE Team</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- Template Selection View -->
+      <div id="view-templates" class="container">
+        <div id="orphan-banner" class="orphan-banner hidden">
+          <div class="orphan-banner-content">
+            <div class="orphan-banner-text">
+              <strong>Existing resources detected</strong>
+              <span id="orphan-banner-detail">Resources from a previous run were found.</span>
+            </div>
+            <button class="btn btn-secondary" onclick="cleanupOrphans()">Clean Up</button>
+          </div>
+        </div>
+        <h1>BRAVE Templates</h1>
+        <p class="subtitle">Select a template to provision your infrastructure, codebase, CI/CD pipeline, and Postman workspace.</p>
+
+        <div class="template-grid">
+          <div class="template-card">
+            <h3>.NET 8.0 Experience API (AWS EKS)</h3>
+            <p>Generate a functioning .NET MicroService API using an OpenAPI Specification with Authentication Code Grant Authentication and hosting in EKS.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 8.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>.NET 8.0 System API (AWS EKS)</h3>
+            <p>Generate a functioning .NET MicroService API using an OpenAPI Specification with Authentication and hosting in AWS EKS.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 8.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>.NET 8.0 System API (AWS Lambda)</h3>
+            <p>Generate a functioning .NET MicroService API using an OpenAPI Specification with Client Credential Grant Authentication and hosting in AWS Lambda.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 8.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card highlighted">
+            <h3>Python 3.11 Flask Experience API (AWS EKS)</h3>
+            <p>Generate a functioning Python 3.11, Flask 3.0.2 Experience API using an OpenAPI Specification and hosting in AWS EKS.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <span class="card-footer-actions">
+                <span class="postman-badge-wrap">
+                  <img src="postman-icon.png" class="postman-badge" alt="Postman">
+                  <span class="postman-popover">
+                    <span class="popover-title">Postman</span>
+                    <span class="popover-items">
+                      <span class="popover-item"><span class="popover-icon">S</span> Spec Governance</span>
+                      <span class="popover-item"><span class="popover-icon">W</span> Workspace</span>
+                      <span class="popover-item"><span class="popover-icon">T</span> Test Collections</span>
+                      <span class="popover-item"><span class="popover-icon">E</span> Environments</span>
+                      <span class="popover-item"><span class="popover-icon">M</span> Mock Server</span>
+                      <span class="popover-item"><span class="popover-icon">C</span> CI/CD Pipeline</span>
+                      <span class="popover-item"><span class="popover-icon">G</span> Source Control Sync</span>
+                    </span>
+                  </span>
+                </span>
+                <button class="btn btn-primary" onclick="showForm()">Select</button>
+              </span>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>Python 3.11 Flask System API (AWS Lambda)</h3>
+            <p>Generate a functioning Python 3.11 Flask System API using an OpenAPI Specification with API Private Key Authentication and hosting in AWS Lambda.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>AWS Aurora PostgreSQL Database</h3>
+            <p>Setup AWS Aurora PostgreSQL Database 13 or 14.5 along with DCD enabled onboarding.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>AWS EKS Cluster</h3>
+            <p>Setup an AWS EKS Cluster along with namespaces.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>Kafka Topic</h3>
+            <p>This request will trigger one click process to setup a DCD pipeline for provisioning a Kafka Schema using MSK.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+
+          <div class="template-card">
+            <h3>Angular Web Application</h3>
+            <p>Generate a functioning Angular Web Application (1.0, 16.2 or 17.1) using NX and hosting in AWS.</p>
+            <div class="card-footer">
+              <span class="version">Template Version 4.0</span>
+              <button class="btn btn-secondary" disabled>Select</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form View -->
+      <div id="view-form" class="container hidden">
+        <div class="form-header">
+          <button class="btn-back" onclick="showTemplates()">&larr; Back to Templates</button>
+          <h1>Python 3.11 Flask Experience API (AWS EKS)</h1>
+          <p class="subtitle">Complete the fields below to provision your Advisor Portfolio API with integrated Postman workspace, test collections, and CI/CD pipeline.</p>
+        </div>
+
+        <!-- Mode selector cards -->
+        <div class="mode-cards">
+          <div class="mode-card disabled">
+            <h4>Code Only</h4>
+            <p>Generate and download code that you can deploy the way you want.</p>
+          </div>
+          <div class="mode-card selected">
+            <h4>End To End</h4>
+            <p>Generate code and a CI/CD pipeline for a complete API solution.</p>
+          </div>
+          <div class="mode-card disabled">
+            <h4>Add To My Repo</h4>
+            <p>Generate code and add it to your existing repository via a pull request.</p>
+          </div>
+        </div>
+
+        <form id="provision-form" onsubmit="submitForm(event)">
+          <div class="form-section">
+            <h2>Project Details</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="projectName">Project Name *</label>
+                <input type="text" id="projectName" required placeholder="e.g., advisor-portfolio-api" value="advisor-portfolio-api" oninput="updateWorkspaceName()">
+              </div>
+              <div class="form-group">
+                <label for="workspaceName">Workspace Name</label>
+                <input type="text" id="workspaceName" readonly value="[WEAL] advisor-portfolio-api" tabindex="-1">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="postmanTeam">Postman Team *</label>
+                <select id="postmanTeam">
+                  <option value="">Loading teams...</option>
+                </select>
+                <span class="hint">Workspace will be created in this team</span>
+              </div>
+              <div class="form-group">
+                <label for="applicationId">Application ID *</label>
+                <input type="text" id="applicationId" required placeholder="e.g., APP-12345" value="APP-78421">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="domain">Business Domain *</label>
+                <select id="domain" onchange="updateWorkspaceName(); updateOctopusGroup()">
+                  <option value="wealth" data-code="WEAL" selected>Wealth Management</option>
+                  <option value="payments" data-code="PAYM">Payments</option>
+                  <option value="identity" data-code="IDEN">Identity</option>
+                  <option value="platform" data-code="PLAT">Platform</option>
+                </select>
+                <span class="hint">Workspace naming: [CODE] Service Title</span>
+              </div>
+              <div class="form-group">
+                <label for="octopusGroup">Octopus Project Group</label>
+                <input type="text" id="octopusGroup" disabled value="WealthMgmt-APIs">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>Requester Information</h2>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input type="email" id="email" required placeholder="developer@lplfinancial.com" value="" readonly>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>API Specification</h2>
+            <div class="form-group">
+              <label for="specSelect">Select Specification</label>
+              <select id="specSelect" onchange="handleSpecSelect()">
+                <option value="" disabled selected>Select a specification...</option>
+                <option value="advisor-portfolio-api" data-url="https://raw.githubusercontent.com/postman-cs/lpl-demo/main/server/boilerplate/openapi.yaml">Advisor Portfolio API (OpenAPI 3.0.3)</option>
+                <option value="custom-upload">Upload custom spec file...</option>
+                <option value="custom-url">Enter Postman Spec Hub URL...</option>
+              </select>
+            </div>
+            <div id="spec-preview" class="spec-preview hidden">
+              <div class="spec-preview-header">
+                <span class="spec-preview-title">Advisor Portfolio API v1.0.0</span>
+                <span class="spec-preview-meta">9 operations | 4 tags | Bearer JWT auth</span>
+              </div>
+              <div class="spec-preview-tags">
+                <span class="spec-tag">Operations</span>
+                <span class="spec-tag">Portfolios</span>
+                <span class="spec-tag">Trades</span>
+                <span class="spec-tag">Analytics</span>
+              </div>
+            </div>
+            <div class="form-group hidden" id="spec-upload-group">
+              <label for="specFile">OpenAPI Spec File (.yaml / .json)</label>
+              <div class="file-drop-zone" id="fileDropZone">
+                <input type="file" id="specFile" accept=".yaml,.yml,.json" onchange="handleSpecFile(this)">
+                <span class="drop-text">Drop your spec file here or click to browse</span>
+              </div>
+            </div>
+            <div class="form-group hidden" id="spec-url-group">
+              <label for="specHubUrl">Postman Spec Hub URL</label>
+              <input type="url" id="specHubUrl" placeholder="https://postman.co/workspace/.../specs/...">
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h2>Infrastructure</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="awsAccount">AWS Dev Account *</label>
+                <select id="awsAccount" required onchange="autoPopulateFromAccount()">
+                  <option value="">Select AWS account...</option>
+                  <option value="780401591112">7804****1112 - Wealth Management Dev</option>
+                  <option value="123456789012">1234****9012 - Payments Dev</option>
+                  <option value="111222333444">1112****3444 - Identity Dev</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="productCode">Product Code</label>
+                <input type="text" id="productCode" placeholder="Auto-populated from account">
+                <label for="businessServiceName" style="margin-top: 12px; display: block;">Business Service Name</label>
+                <input type="text" id="businessServiceName" disabled placeholder="Auto-populated from account">
+              </div>
+            </div>
+            <div class="toggle-tiles" style="margin-top: 16px;">
+              <div class="toggle-tile">
+                <label>API Gateway *</label>
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="apiGateway" value="aws-apigw" checked> AWS API Gateway</label>
+                  <label class="radio-label disabled"><input type="radio" name="apiGateway" value="kong" disabled> Kong API Gateway</label>
+                </div>
+              </div>
+              <div class="toggle-tile">
+                <label>Authentication Type</label>
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="authType" value="oauth2" checked> OAuth 2.0 (Client Credentials)</label>
+                  <label class="radio-label"><input type="radio" name="authType" value="none"> No Auth (Private Endpoint)</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section options-section">
+            <h2>Options</h2>
+            <div class="options-grid">
+              <div class="options-env">
+                <label>Environments</label>
+                <div class="env-checkboxes env-checkboxes--grid">
+                  <label class="env-checkbox"><input type="checkbox" name="env" value="dev" checked> DEV</label>
+                  <label class="env-checkbox"><input type="checkbox" name="env" value="qa"> QA</label>
+                  <label class="env-checkbox"><input type="checkbox" name="env" value="staging"> STAGING</label>
+                  <label class="env-checkbox"><input type="checkbox" name="env" value="uat"> UAT</label>
+                  <label class="env-checkbox"><input type="checkbox" name="env" value="prod" checked> PROD</label>
+                </div>
+                <span class="hint">Create AWS accounts for respective environments to prevent deployment failures.</span>
+              </div>
+              <div class="options-toggles">
+                <div>
+                  <label>Enable DNAAE?</label>
+                  <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="dnaae" value="yes"> Yes</label>
+                    <label class="radio-label"><input type="radio" name="dnaae" value="no" checked> No</label>
+                  </div>
+                </div>
+                <div>
+                  <label>Jira Tracking</label>
+                  <div class="radio-group">
+                    <label class="radio-label"><input type="radio" name="createJira" value="yes" checked> Create ticket</label>
+                    <label class="radio-label"><input type="radio" name="createJira" value="no"> Skip</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section postman-section">
+            <h2>Postman Integration</h2>
+            <p class="section-desc">The following artifacts are automatically provisioned for every service:</p>
+            <div class="provision-grid">
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">S</span>
+                  <h4>Spec Governance</h4>
+                </div>
+                <ul>
+                  <li>API spec uploaded to Spec Hub for centralized discovery</li>
+                  <li>Postman CLI validates against organization and workspace group governance rules</li>
+                  <li>Workspace assigned to domain governance group for workspace-level policy</li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">W</span>
+                  <h4>Workspace</h4>
+                </div>
+                <ul>
+                  <li>Private team workspace with requester access granted</li>
+                  <li>Connected to source control via GitHub repo sync</li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">T</span>
+                  <h4>Test Collections</h4>
+                </div>
+                <ul>
+                  <li><strong>Baseline</strong> -- all endpoints registered with documentation</li>
+                  <li><strong>Smoke</strong> -- status codes, response times, body structure</li>
+                  <li><strong>Contract</strong> -- schema validation, enums, format constraints</li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">E</span>
+                  <h4>Environments &amp; Secrets</h4>
+                </div>
+                <ul>
+                  <li>Per-stage environments with auth variables and base URLs</li>
+                  <li>Request 0 secrets resolver via AWS Signature v4</li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">C</span>
+                  <h4>CI/CD Pipeline</h4>
+                </div>
+                <ul>
+                  <li>Pre-deploy -- collections run against the container locally in CI; failures block deployment</li>
+                  <li>Post-deploy -- collections run again against live infra; failures trigger rollback</li>
+                  <li>Scheduled monitoring via Postman CLI on a 6-hour cron</li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">M</span>
+                  <h4>Mock Server</h4>
+                </div>
+                <ul>
+                  <li>Cloud mock server created from baseline collection — live URL available immediately</li>
+                  <li>Local mock handlers from spec exported to <code>postman/mocks/</code></li>
+                </ul>
+              </div>
+              <div class="provision-card">
+                <div class="provision-card-header">
+                  <span class="provision-card-icon">G</span>
+                  <h4>Source Control Sync</h4>
+                </div>
+                <ul>
+                  <li>Collections, environments, specs, mocks, and globals exported to Git repo</li>
+                  <li>Workspace connected to repo for bi-directional sync via Postman app</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showTemplates()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Provision API</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Status View -->
+      <div id="view-status" class="container hidden">
+        <h1>Provisioning Status</h1>
+        <p class="subtitle" id="status-project-name"></p>
+
+        <div class="status-timeline">
+          <div class="status-step" id="step-github">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>GitHub Repository</h3>
+              <p>Create repo, push boilerplate, inject secrets, trigger provisioning workflow</p>
+              <div class="step-detail" id="detail-github"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-postman">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>Postman Workspace</h3>
+              <p>Create team workspace, assign governance group, grant requester editor access</p>
+              <div class="step-detail" id="detail-postman"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-spec">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>Spec &amp; Collections</h3>
+              <p>Upload spec to Spec Hub, validate against governance rules (<code>postman spec lint</code>), generate Baseline/Smoke/Contract collections, inject test scripts &amp; secrets resolver</p>
+              <div class="step-detail" id="detail-spec"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-aws">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>AWS Deployment</h3>
+              <p>Create IAM execution role, package Flask app, deploy Lambda functions with API Gateway HTTP APIs, run health checks</p>
+              <div class="step-detail" id="detail-aws"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-postman-env">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>Postman Environments</h3>
+              <p>Create environments with API Gateway endpoints, configure secrets variables, create mock server from baseline collection</p>
+              <div class="step-detail" id="detail-postman-env"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-sync">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+              <div class="step-line"></div>
+            </div>
+            <div class="step-content">
+              <h3>Environment Sync</h3>
+              <p>Export collections &amp; environments to repo, connect workspace to GitHub via Bifrost, replace provision workflow with CI/CD pipeline</p>
+              <div class="step-detail" id="detail-sync"></div>
+            </div>
+          </div>
+
+          <div class="status-step" id="step-notify">
+            <div class="step-indicator">
+              <div class="step-dot"></div>
+            </div>
+            <div class="step-content">
+              <h3>Notification</h3>
+              <p>Send provisioning summary email, report to SonarQube, create Jira ticket with resource links</p>
+              <div class="step-detail" id="detail-notify"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="result-summary" class="result-summary hidden"></div>
+
+        <!-- Mock panels (populated after provisioning) -->
+        <div id="mock-panels" class="mock-panels hidden">
+          <div id="mock-email" class="mock-panel"></div>
+          <div id="mock-sonarqube" class="mock-panel"></div>
+          <div id="mock-jira" class="mock-panel"></div>
+        </div>
+      </div>
+
+      <!-- Documentation View -->
+      <div id="view-docs" class="container hidden">
+        <button class="btn-back" onclick="showTemplates()">&larr; Back to Templates</button>
+        <h1>Postman Integration</h1>
+        <p class="subtitle">How Postman integrates into the developer platform and the value each touchpoint delivers.</p>
+
+        <img src="LPL-BRAVEandPostman.png" alt="BRAVE and Postman integration overview" class="docs-hero-img">
+
+        <div class="docs-grid">
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">1</span>
+              <h3>Spec-First Governance</h3>
+            </div>
+            <p>Every API starts with an OpenAPI specification validated against organization and workspace group governance rules using the Postman CLI before any infrastructure is provisioned. Workspaces are automatically assigned to domain-specific governance groups for workspace-level policy enforcement.</p>
+            <div class="docs-value">
+              <h4>Value</h4>
+              <ul>
+                <li>Shift-left API quality -- spec issues caught before code exists</li>
+                <li>Consistent naming, error schemas, and security patterns across all services</li>
+                <li>Specs published to Spec Hub become the single source of truth for consumers</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">2</span>
+              <h3>Workspace-per-Service</h3>
+            </div>
+            <p>Each provisioned service gets a dedicated Postman workspace with standardized naming (<code>[DOMAIN] service-name</code>) for discoverability across the organization.</p>
+            <div class="docs-value">
+              <h4>Value</h4>
+              <ul>
+                <li>Every team can find any API in seconds through workspace search</li>
+                <li>Access control scoped per service -- requester auto-granted on creation</li>
+                <li>Workspace connected to Git repo enables bi-directional sync of collections, environments, and specs</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">3</span>
+              <h3>Generated Test Collections</h3>
+            </div>
+            <p>Three collections are generated directly from the spec, each targeting a different layer of API correctness.</p>
+            <div class="docs-value">
+              <h4>Baseline Collection</h4>
+              <p>All endpoints pre-registered with request bodies, path params, and documentation pulled from the spec. Developers start from a working collection rather than building from scratch.</p>
+              <h4>Smoke Tests</h4>
+              <p>Status code assertions, response time thresholds, and body structure checks. Answers: "is the API up and responding correctly?"</p>
+              <h4>Contract Tests</h4>
+              <p>Schema validation, required field enforcement, enum constraints, string/numeric format checks. Answers: "does the API still match its contract?"</p>
+            </div>
+          </div>
+
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">4</span>
+              <h3>Environment Management</h3>
+            </div>
+            <p>Environments are provisioned per deployment stage with variables pre-configured for auth, base URLs, and cloud-native secrets resolution.</p>
+            <div class="docs-value">
+              <h4>Value</h4>
+              <ul>
+                <li>Developers switch stages with a single dropdown -- no manual URL editing</li>
+                <li>Secrets are resolved at runtime via AWS Secrets Manager using Postman's native SigV4 auth, never stored in plaintext</li>
+                <li>Consistent variable naming across all services reduces onboarding friction for new team members</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">5</span>
+              <h3>CI/CD with Postman CLI</h3>
+            </div>
+            <p>The Postman CLI is embedded at multiple stages of the CI/CD workflow. Collections run twice per pipeline execution -- once before deployment and once after -- turning API tests into both a quality gate and a deployment verification step.</p>
+            <div class="docs-value">
+              <h4>Pre-Deploy Gate (Container in CI)</h4>
+              <p>On push or merge, the workflow builds the runtime container and starts it locally inside the CI runner. Postman collections execute against this local container -- smoke tests, contract tests, and behavioral checks all run before any infrastructure is touched. If any collection run fails, the workflow fails and <em>no deployment happens</em>. Spec violations, broken contracts, and behavioral regressions are caught here.</p>
+              <h4>Post-Deploy Verification (Live Infrastructure)</h4>
+              <p>If pre-deploy tests pass, the service deploys to cloud infrastructure. Collections run again, this time against the live endpoint. Failures at this stage isolate cloud-specific issues -- IAM misconfigurations, network policy errors, environment variable drift -- and trigger an automatic rollback.</p>
+              <h4>Scheduled Monitoring</h4>
+              <p>A 6-hour cron runs smoke tests continuously between deploys, catching environment-level regressions -- expired certificates, infrastructure drift, upstream dependency failures.</p>
+              <h4>Centralized Reporting</h4>
+              <p>Every CLI run reports results back to Postman. Teams get a single dashboard view of test pass rates, response times, and failure trends across all services in the organization.</p>
+            </div>
+          </div>
+
+          <div class="docs-card">
+            <div class="docs-card-header">
+              <span class="docs-card-number">6</span>
+              <h3>Source Control Sync</h3>
+            </div>
+            <p>API artifacts are exported to the Git repository and the workspace is connected via the filesystem API. The pipeline uses direct Postman APIs to export each entity — the same mechanism the Postman desktop app uses for bi-directional sync.</p>
+            <div class="docs-value">
+              <h4>Synced Entities</h4>
+              <ul>
+                <li><strong>Collections</strong> — baseline, smoke, and contract test collections in <code>postman/collections/</code></li>
+                <li><strong>Environments</strong> — per-stage environment configs in <code>postman/environments/</code></li>
+                <li><strong>Specifications</strong> — OpenAPI spec in <code>postman/specs/</code> (syncs with Spec Hub)</li>
+                <li><strong>Local Mocks</strong> — auto-generated route handlers in <code>postman/mocks/</code> with stub responses from spec</li>
+                <li><strong>Globals</strong> — workspace-level variables in <code>postman/globals/</code></li>
+              </ul>
+              <h4>Value</h4>
+              <ul>
+                <li>API artifacts versioned alongside application code -- full history and diff support</li>
+                <li>Local mocks let developers test against the API contract without deploying infrastructure</li>
+                <li>Code review workflows apply to API definitions, not just application logic</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Floating teardown button -->
+  <div id="teardown-fab" class="teardown-fab hidden" onclick="teardownFromFab()">
+    <span class="fab-icon">x</span>
+    <span class="fab-label">Teardown Active Resources</span>
+  </div>
+
+  </div><!-- /app-shell -->
+
+  <script src="app.js"></script>
+</body>
+</html>

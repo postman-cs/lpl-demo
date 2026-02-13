@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "workspace": "${POSTMAN_WORKSPACE_ID}",
+  "github": {
+    "org": "${GITHUB_ORG}",
+    "token": "${GITHUB_TOKEN}"
+  },
+  "postman": {
+    "apiKey": "${POSTMAN_API_KEY}"
+  },
+  "aws": {
+    "region": "${AWS_REGION}"
+  },
+  "demo": {
+    "defaultProject": "advisor-portfolio-api",
+    "defaultDomain": "wealth",
+    "defaultEmail": "jared.boynton@postman.com"
+  }
+}

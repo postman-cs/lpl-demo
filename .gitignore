@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Rust build artifacts
+target/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+package/
+deployment.zip
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Provisioning output (regenerated each run)
+provisioning-result.json
+provisioning-debug.log
+provisioning-demo.log
+
+.scout/

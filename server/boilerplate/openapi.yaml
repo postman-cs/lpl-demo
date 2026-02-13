@@ -1,0 +1,604 @@
+openapi: "3.0.3"
+info:
+  title: Advisor Portfolio API
+  description: |
+    Experience API for managing investment portfolios and trade execution
+    on the LPL Financial wealth management platform.
+
+    Provisioned by the BRAVE platform as a Python 3.11 Flask Experience API.
+    This API serves as the external-facing interface between financial advisor
+    applications and downstream portfolio management system APIs.
+  version: "1.0.0"
+  contact:
+    name: BRAVE Platform Team
+servers:
+  - url: "{baseUrl}"
+    description: Dynamic base URL injected at deployment time
+    variables:
+      baseUrl:
+        default: http://localhost:5000
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      description: Returns service health status, version, and uptime metadata.
+      tags:
+        - Operations
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/portfolios:
+    get:
+      operationId: listPortfolios
+      summary: List managed portfolios
+      description: Returns a paginated list of investment portfolios managed by the requesting advisor.
+      tags:
+        - Portfolios
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended, closed, pending-review]
+      responses:
+        "200":
+          description: Paginated list of portfolios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      operationId: initiatePortfolio
+      summary: Initiate a new portfolio
+      description: |
+        Creates a new managed investment portfolio for a client.
+        Triggers compliance review and sets initial allocation targets.
+      tags:
+        - Portfolios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortfolioInitiate"
+      responses:
+        "201":
+          description: Portfolio initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/portfolios/{portfolioId}:
+    parameters:
+      - name: portfolioId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPortfolio
+      summary: Get portfolio details
+      description: Returns detailed information about a specific managed portfolio including holdings and performance.
+      tags:
+        - Portfolios
+      responses:
+        "200":
+          description: Portfolio details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    put:
+      operationId: updatePortfolio
+      summary: Update portfolio configuration
+      description: Updates portfolio metadata, allocation targets, or trading policies.
+      tags:
+        - Portfolios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortfolioUpdate"
+      responses:
+        "200":
+          description: Portfolio updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/v1/portfolios/{portfolioId}/trades:
+    parameters:
+      - name: portfolioId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: listTrades
+      summary: List portfolio trades
+      description: Returns trade history for a portfolio with optional date range filtering.
+      tags:
+        - Trades
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, executed, settled, cancelled, rejected]
+      responses:
+        "200":
+          description: Paginated list of trades
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradeListResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      operationId: initiateTrade
+      summary: Initiate a trade
+      description: |
+        Submits a trade order against the portfolio holdings.
+        Subject to portfolio trading policies and compliance rules.
+      tags:
+        - Trades
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeInitiate"
+      responses:
+        "201":
+          description: Trade initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/portfolios/{portfolioId}/trades/{tradeId}:
+    parameters:
+      - name: portfolioId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: tradeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getTrade
+      summary: Get trade details
+      description: Returns details of a specific trade including execution status and settlement info.
+      tags:
+        - Trades
+      responses:
+        "200":
+          description: Trade details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/portfolios/{portfolioId}/performance:
+    parameters:
+      - name: portfolioId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPortfolioPerformance
+      summary: Get portfolio performance metrics
+      description: Returns performance analytics including returns, risk metrics, and benchmark comparison.
+      tags:
+        - Analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [1d, 1w, 1m, 3m, 6m, 1y, ytd, inception]
+            default: 1m
+      responses:
+        "200":
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerformanceMetrics"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token issued by LPL identity provider
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+        service:
+          type: string
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    Portfolio:
+      type: object
+      required:
+        - portfolioId
+        - clientId
+        - advisorId
+        - portfolioName
+        - status
+        - investmentObjective
+        - createdAt
+      properties:
+        portfolioId:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        advisorId:
+          type: string
+          format: uuid
+        portfolioName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        status:
+          type: string
+          enum: [active, suspended, closed, pending-review]
+        investmentObjective:
+          type: string
+          enum: [growth, income, balanced, preservation, aggressive-growth]
+        riskTolerance:
+          type: string
+          enum: [conservative, moderate, aggressive]
+        totalValue:
+          type: number
+          minimum: 0
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          default: USD
+        benchmarkIndex:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PortfolioInitiate:
+      type: object
+      required:
+        - clientId
+        - portfolioName
+        - investmentObjective
+      properties:
+        clientId:
+          type: string
+          format: uuid
+        portfolioName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        investmentObjective:
+          type: string
+          enum: [growth, income, balanced, preservation, aggressive-growth]
+        riskTolerance:
+          type: string
+          enum: [conservative, moderate, aggressive]
+          default: moderate
+        benchmarkIndex:
+          type: string
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          default: USD
+
+    PortfolioUpdate:
+      type: object
+      required:
+        - portfolioName
+      properties:
+        portfolioName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        investmentObjective:
+          type: string
+          enum: [growth, income, balanced, preservation, aggressive-growth]
+        riskTolerance:
+          type: string
+          enum: [conservative, moderate, aggressive]
+        status:
+          type: string
+          enum: [active, suspended, closed, pending-review]
+        benchmarkIndex:
+          type: string
+
+    PortfolioListResponse:
+      type: object
+      required:
+        - portfolios
+        - total
+        - limit
+        - offset
+      properties:
+        portfolios:
+          type: array
+          items:
+            $ref: "#/components/schemas/Portfolio"
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Trade:
+      type: object
+      required:
+        - tradeId
+        - portfolioId
+        - instrumentType
+        - ticker
+        - side
+        - quantity
+        - status
+        - initiatedAt
+      properties:
+        tradeId:
+          type: string
+          format: uuid
+        portfolioId:
+          type: string
+          format: uuid
+        instrumentType:
+          type: string
+          enum: [equity, fixed-income, etf, mutual-fund, option]
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 10
+        side:
+          type: string
+          enum: [buy, sell]
+        quantity:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        pricePerUnit:
+          type: number
+          minimum: 0
+        totalAmount:
+          type: number
+          minimum: 0
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        status:
+          type: string
+          enum: [pending, executed, settled, cancelled, rejected]
+        complianceStatus:
+          type: string
+          enum: [approved, pending-review, rejected, exempt]
+        initiatedAt:
+          type: string
+          format: date-time
+        executedAt:
+          type: string
+          format: date-time
+        settledAt:
+          type: string
+          format: date-time
+
+    TradeInitiate:
+      type: object
+      required:
+        - instrumentType
+        - ticker
+        - side
+        - quantity
+      properties:
+        instrumentType:
+          type: string
+          enum: [equity, fixed-income, etf, mutual-fund, option]
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 10
+        side:
+          type: string
+          enum: [buy, sell]
+        quantity:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        limitPrice:
+          type: number
+          minimum: 0
+        orderType:
+          type: string
+          enum: [market, limit, stop, stop-limit]
+          default: market
+
+    TradeListResponse:
+      type: object
+      required:
+        - trades
+        - total
+        - limit
+        - offset
+      properties:
+        trades:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trade"
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    PerformanceMetrics:
+      type: object
+      required:
+        - portfolioId
+        - period
+        - totalReturn
+        - asOfDate
+      properties:
+        portfolioId:
+          type: string
+          format: uuid
+        period:
+          type: string
+          enum: [1d, 1w, 1m, 3m, 6m, 1y, ytd, inception]
+        totalReturn:
+          type: number
+          description: Total return as a percentage
+        annualizedReturn:
+          type: number
+        benchmarkReturn:
+          type: number
+        alpha:
+          type: number
+          description: Excess return vs benchmark
+        sharpeRatio:
+          type: number
+          description: Risk-adjusted return measure
+        maxDrawdown:
+          type: number
+          description: Maximum peak-to-trough decline as a percentage
+          maximum: 0
+        volatility:
+          type: number
+          description: Annualized standard deviation of returns
+          minimum: 0
+        asOfDate:
+          type: string
+          format: date
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
