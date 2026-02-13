@@ -1,5 +1,7 @@
 # LPL Ingestion Pipeline
 
+![LPL BRAVE and Postman](LPL-BRAVEandPostman.png)
+
 POV demonstrating Postman integration into LPL Financial's BRAVE Internal Developer Platform. Follows the prescriptive architecture: **one service = one workspace = one repo**.
 
 When a developer selects a template in BRAVE, this pipeline provisions a complete API lifecycle:
