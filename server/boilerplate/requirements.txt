@@ -1,6 +1,6 @@
-flask==3.1.0
-flask-cors==5.0.1
-marshmallow==3.23.2
+flask==3.1.1
+flask-cors==6.0.0
+marshmallow==3.26.2
 gunicorn==23.0.0
 pyyaml==6.0.2
 boto3==1.36.7
